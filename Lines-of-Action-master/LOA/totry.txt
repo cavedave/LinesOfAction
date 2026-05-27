@@ -1,0 +1,53 @@
+
+
+ 1027   python -m harness --a minimax_d4_bbox12 --b minimax_d4 --games 1 --dim 8
+ 1028  python -m harness --a minimax_d4_bbox12 --b minimax_d4 --games 5 --dim 8 --print-outcomes
+ 1029  python -m harness --a minimax_d4_bbox12 --b minimax_d4 --games 6 --dim 8 --print-outcomes
+ 1030  # 6×6 — same style as bbox\npython -m harness --a minimax_d4 --b minimax_d4_density12 --games 200 --dim 6\n\n# 8×8 — small batch + outcomes\npython -m harness --a minimax_d4 --b minimax_d4_density12 --games 6 --dim 8 --print-outcomes
+ 1031  python -m harness --a minimax_d4 --b minimax_d4_density12 --games 100 --dim 6 --random-opening
+ 1032  python -m harness --a minimax_d4 --b minimax_d4_density12 --games 20 --dim 8 --random-opening --opening-seed 42--print-outcomes
+
+3.7 seconds a game depth 3
+
+ harness timing: 10 games, play_one_game sum 37.769s (mean 3.777s/game, min 3.745s, max 3.808s; full batch wall 37.770s incl. bot setup)
+{
+  "a_wins": 5,
+  "b_wins": 5,
+  "draws": 0,
+  "outcome_reasons": {
+    "win": 10
+  },
+  "random_opening": false,
+  "opening_seed_base": null,
+  "timing": {
+    "total_s": 37.768911,
+    "batch_wall_s": 37.770337,
+    "mean_s": 3.776891,
+    "min_s": 3.744702,
+    "max_s": 3.808395,
+    "per_game_s": [
+      3.747709,
+      3.744702,
+      3.787829,
+      3.754681,
+      3.773846,
+      3.77095,
+      3.783037,
+      3.797194,
+      3.800567,
+      3.808395
+    ]
+  }
+}
+
+
+cd Lines-of-Action-master
+python -m harness compare \
+  --champion minimax_d3 \
+  --challenger minimax_d4_bbox12 \
+  --rounds 100 \
+  --dim 8
+
+  
+
+  
