@@ -2,155 +2,115 @@ Lines of Action — harness test instructions
 ============================================
 Repo: https://github.com/cavedave/LinesOfAction.git
 Code: Lines-of-Action-master/
-Default bot: best  (= adaptive depth 3→4 + mobility_weight 5)
 
-Run TWO parallel batches: SET A on the Windows server, SET B on the Mac.
-Both machines should run SETUP + SMOKE first.
+GOAL: RL / batch self-play needs MANY games, not peak Elo.
+Target: ~1 minute per game or less at 8×8.
 
+Default bot: best  (= fast = fixed depth 3 + mobility_weight 5)
+  ~20 s/game in self-play (8×8, random opening). No selective d4.
 
---- SETUP (both machines) ---
+Strong/slow bot: strong  (= adaptive d3→d4 + mob5)
+  ~26 s/game vs fixed d3; use only when testing strength, not for RL traces.
 
-1. Clone or pull latest main:
-
-   git clone https://github.com/cavedave/LinesOfAction.git
-   cd LinesOfAction/Lines-of-Action-master
-
-   — or —
-
-   cd LinesOfAction
-   git pull origin main
-   cd Lines-of-Action-master
-
-2. Python 3.10+ and virtualenv:
-
-   Mac / Linux:
-     python3 -m venv .venv
-     source .venv/bin/activate
-     pip install -r requirements.txt
-     export SDL_VIDEODRIVER=dummy
-
-   Windows (cmd):
-     py -3 -m venv .venv
-     .venv\Scripts\activate
-     pip install -r requirements.txt
-     set SDL_VIDEODRIVER=dummy
-
-   Windows (PowerShell):
-     py -3 -m venv .venv
-     .venv\Scripts\Activate.ps1
-     pip install -r requirements.txt
-     $env:SDL_VIDEODRIVER = "dummy"
-
-3. All harness commands below assume you are in Lines-of-Action-master with
-   the venv active and SDL_VIDEODRIVER=dummy set.
+You can STOP any running d4 ceiling tests (best vs minimax_d4_mob5) — they are
+not needed for the RL throughput path.
 
 
---- SMOKE (both machines, ~1 minute) ---
+--- SETUP ---
 
-Confirm imports and that best beats random:
+  git pull origin main
+  cd Lines-of-Action-master
+
+  PowerShell:
+    py -3 -m venv .venv
+    .venv\Scripts\Activate.ps1
+    pip install -r requirements.txt
+    $env:SDL_VIDEODRIVER = "dummy"
+
+  Mac / Linux:
+    python3 -m venv .venv && source .venv/bin/activate
+    pip install -r requirements.txt
+    export SDL_VIDEODRIVER=dummy
+
+
+--- SMOKE (~30 seconds) ---
 
   python -m harness --a best --b random --games 4 --dim 8
 
-Expect: harness result line with B (random) winning 0–1 games at most.
-Also expect: no Python traceback.
+Expect: best wins all or nearly all; mean time well under 60 s/game.
 
 
---- SET A — Windows server (slow / overnight) ---
+--- RL THROUGHPUT TESTS (run on either machine) ---
 
-Estimated total: ~6–8 hours on a typical CPU.
-Save full stderr; grep the summary lines at the end.
+T1) Self-play speed check (10 games — confirms ~1 min/game budget)
 
-A1) Ceiling check: best vs always depth-4 (50 games × 4 seeds = 200 games)
-    Confirms adaptive is weaker than d4 but how much; reproduces ~72% d4 decisive on seed 42.
+  python -m harness --a best --b best --games 10 --random-opening --opening-seed 42 --dim 8
 
-  for s in 42 7 99 1234; do
-    python -m harness --a best --b minimax_d4_mob5 \
-      --games 50 --random-opening --opening-seed $s --dim 8 \
-      2>&1 | tee -a results_windows_A1_seed$s.log | grep -E "harness result:|harness timing:"
-  done
-
-  Windows cmd (run each seed separately):
-    python -m harness --a best --b minimax_d4_mob5 --games 50 --random-opening --opening-seed 42 --dim 8
-    python -m harness --a best --b minimax_d4_mob5 --games 50 --random-opening --opening-seed 7 --dim 8
-    python -m harness --a best --b minimax_d4_mob5 --games 50 --random-opening --opening-seed 99 --dim 8
-    python -m harness --a best --b minimax_d4_mob5 --games 50 --random-opening --opening-seed 1234 --dim 8
-
-  Record per seed: A wins, B wins, draws, mean s/game.
-  Paste the four "harness result:" lines back to the Mac session.
+  Expect: harness timing mean ~15–25 s/game at 8×8.
 
 
-A2) Regression: fixed d3 mob5 vs best (50 games × 2 seeds = 100 games)
-    Expect best (B) ~70–80% decisive.
+T2) Self-play quality smoke (50 games — bot is not broken)
 
-  python -m harness --a minimax_d3_mob5 --b best \
-    --games 50 --random-opening --opening-seed 7 --dim 8
+  python -m harness --a best --b best --games 50 --random-opening --opening-seed 42 --dim 8
 
-  python -m harness --a minimax_d3_mob5 --b best \
-    --games 50 --random-opening --opening-seed 1234 --dim 8
+  Expect: win split roughly 50/50 (same bot both sides); few or no illegal-move draws.
 
 
---- SET B — Mac (medium, ~2–3 hours) ---
+T3) vs weaker baseline (50 games — mob5 beats plain d3)
 
-B1) Mobility bracket at adaptive depth (50 games each, seed 42)
-    Does mob5 beat mob4 and mob6 when both use selective d4?
+  python -m harness --a minimax_d3 --b best --games 50 --random-opening --opening-seed 42 --dim 8
 
-  python -m harness --a best_mob4 --b best \
-    --games 50 --random-opening --opening-seed 42 --dim 8 \
-    2>&1 | grep -E "harness result:|harness timing:"
-
-  python -m harness --a best_mob6 --b best \
-    --games 50 --random-opening --opening-seed 42 --dim 8 \
-    2>&1 | grep -E "harness result:|harness timing:"
-
-  Expect: best (B) wins majority if mob5 is still optimal.
+  Expect: best (B) wins ~70%+ decisive; still ~10–15 s/game.
 
 
-B2) Classic heuristic tweak vs best (50 games, seed 42)
-    Old experiment retested against adaptive baseline.
+T4) Optional 6×6 (faster games for huge batches)
 
-  python -m harness --a minimax_d4_bbox12 --b best \
-    --games 50 --random-opening --opening-seed 42 --dim 8 \
-    2>&1 | grep -E "harness result:|harness timing:"
+  python -m harness --a best --b best --games 20 --random-opening --opening-seed 42 --dim 6
+
+  Expect: mean s/game lower than 8×8.
 
 
-B3) Regression duplicate (50 games × 2 seeds) — cross-check Windows numbers
+--- PARALLEL SPLIT (if two machines) ---
 
-  python -m harness --a minimax_d3_mob5 --b best \
-    --games 50 --random-opening --opening-seed 42 --dim 8 \
-    2>&1 | grep -E "harness result:|harness timing:"
+Machine 1 — T2 at seeds 42 and 7 (100 games total):
+  PowerShell:
+    foreach ($s in 42, 7) {
+      python -m harness --a best --b best --games 50 --random-opening --opening-seed $s --dim 8 2>&1 |
+        Select-String -Pattern "harness result:|harness timing:"
+    }
 
-  python -m harness --a minimax_d3_mob5 --b best \
-    --games 50 --random-opening --opening-seed 99 --dim 8 \
-    2>&1 | grep -E "harness result:|harness timing:"
+Machine 2 — T2 at seeds 99 and 1234 + T3 seed 42:
+  Mac bash:
+    for s in 99 1234; do
+      SDL_VIDEODRIVER=dummy .venv/bin/python -m harness --a best --b best \
+        --games 50 --random-opening --opening-seed $s --dim 8 2>&1 |
+        grep -E "harness result:|harness timing:"
+    done
+    SDL_VIDEODRIVER=dummy .venv/bin/python -m harness --a minimax_d3 --b best \
+      --games 50 --random-opening --opening-seed 42 --dim 8 2>&1 |
+      grep -E "harness result:|harness timing:"
+
+
+--- STRENGTH TESTS (optional, slow — NOT for RL batches) ---
+
+Only if you want to compare strong vs fast:
+
+  python -m harness --a best --b strong --games 50 --random-opening --opening-seed 42 --dim 8
+
+  Expect: strong (B) wins majority; ~25 s/game (not ~90 s — neither side is always d4).
 
 
 --- READING OUTPUT ---
 
-Each batch prints two useful stderr lines:
-
-  harness timing: N games, ... (mean X.XXXs/game, ...)
+  harness timing: ... (mean X.XXXs/game, ...)
   harness result: A <bot_a> W1 — B <bot_b> W2 — draws D — B decisive P%
 
-"A" is the --a bot; "B" is the --b bot. Colours alternate each game when
---games is even, so win counts are colour-balanced.
-
-Full JSON on stdout includes timing.per_game_s and outcome_reasons.
+Report: test id (T1–T4), seed, mean s/game, result line.
 
 
---- OPTIONAL QUICK CHECKS ---
+--- REGISTRY QUICK REFERENCE ---
 
-List registry bots (requires python one-liner):
-
-  python -c "import json; print('\n'.join(json.load(open('harness/registry.json'))))"
-
-Mobility sweep (fixed d3 only, ~30 min for weights 4,5,6):
-
-  python -m harness sweep-mobility --baseline minimax_d3 \
-    --weights 4,5,6 --games 50 --random-opening --opening-seed 42 --dim 8
-
-
---- WHAT TO REPORT BACK ---
-
-Copy/paste all "harness result:" and "harness timing:" lines from your set,
-labelled SET A or SET B and test id (A1, B1, …). Note machine OS and
-approximate wall-clock time if batches were split across sessions.
+  best / fast     — d3 + mob5 (RL default)
+  strong          — adaptive d3→d4 + mob5
+  minimax_d3      — d3 classic (weaker, slightly faster eval)
+  minimax_d4_mob5 — always d4 (too slow for RL; ~90–220 s/game in mixed pairs)

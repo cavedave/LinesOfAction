@@ -19,7 +19,7 @@ class AI:
         weights: HeuristicWeights | None = None,
         *,
         depth: int = 3,
-        adaptive_depth: bool = True,
+        adaptive_depth: bool = False,
         depth_deep: int = 4,
     ):
         self.depth = depth

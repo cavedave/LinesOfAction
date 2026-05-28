@@ -1,5 +1,11 @@
 {
-  "best": {"alias": "minimax_adaptive_mob5"},
+  "best": {"alias": "fast"},
+  "fast": {
+    "type": "minimax",
+    "depth": 3,
+    "heuristic": {"mobility_weight": 5}
+  },
+  "strong": {"alias": "minimax_adaptive_mob5"},
   "minimax_adaptive_mob5": {
     "type": "minimax",
     "depth": 3,

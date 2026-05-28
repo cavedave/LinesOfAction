@@ -1,4 +1,6 @@
-"""Run: ``cd Lines-of-Action-master && python -m harness --a best --b random --games 4``
+"""Run: ``cd Lines-of-Action-master && python -m harness --a best --b best --games 10 --dim 8``
+
+RL / batch default bot is ``best`` (fixed d3 + mob5, ~20 s/game). Use ``strong`` for adaptive d4.
 
 Or championship-style::
 
