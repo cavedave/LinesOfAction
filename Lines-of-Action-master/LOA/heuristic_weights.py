@@ -39,6 +39,8 @@ class HeuristicWeights:
     # Classic + mobility plus: projection_weight × Loadstone (pe − ope) for side to move.
     # Isolated from enclosed and from full board_eval blend; tune via registry (e.g. strong_proj2).
     projection_weight: int = 0
+    # Classic + mobility plus: enclosed_weight × Loadstone enclosed (after pe/ope passes).
+    enclosed_weight: int = 0
     # 0 = PST/COM heuristic only; 100 = LoAdstone-normalized scalar only (_eval_for_player)
     loadstone_blend_pct: int = 0
 

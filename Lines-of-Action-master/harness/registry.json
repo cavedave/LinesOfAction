@@ -33,6 +33,27 @@
     "adaptive_depth": true,
     "heuristic": {"mobility_weight": 5, "projection_weight": 4}
   },
+  "strong_enc1": {
+    "type": "minimax",
+    "depth": 3,
+    "depth_deep": 4,
+    "adaptive_depth": true,
+    "heuristic": {"mobility_weight": 5, "enclosed_weight": 1}
+  },
+  "strong_enc2": {
+    "type": "minimax",
+    "depth": 3,
+    "depth_deep": 4,
+    "adaptive_depth": true,
+    "heuristic": {"mobility_weight": 5, "enclosed_weight": 2}
+  },
+  "strong_enc4": {
+    "type": "minimax",
+    "depth": 3,
+    "depth_deep": 4,
+    "adaptive_depth": true,
+    "heuristic": {"mobility_weight": 5, "enclosed_weight": 4}
+  },
   "best_mob4": {
     "type": "minimax",
     "depth": 3,

@@ -319,6 +319,28 @@ def projection_stm_minus_opponent(
     return pe - ope
 
 
+def enclosed_for_stm(board: List[List[str]], stm_char: str, dim: int) -> int:
+    """
+    Loadstone ``enclosed`` term for ``stm_char`` after opponent-then-stm ``player_eval`` passes.
+
+    Matches the ``enclosed[0]`` used in :func:`board_eval_non_terminal` (before ×512 scaling).
+    Returns 0 if either colour has no stones.
+    """
+    stm_index = 0 if stm_char == "B" else 1
+    nb_c = [
+        count_components_8conn(board, "B"),
+        count_components_8conn(board, "W"),
+    ]
+    if nb_c[0] == 0 or nb_c[1] == 0:
+        return 0
+    pt = build_projections(board, dim)
+    enclosed: List[int] = [0]
+    player_eval(stm_index ^ 1, pt, dim, nb_c, enclosed)
+    enclosed[0] = -enclosed[0]
+    player_eval(stm_index, pt, dim, nb_c, enclosed)
+    return enclosed[0]
+
+
 def board_eval_terminal_value(
     stm_index: int,
     nb_components: List[int],

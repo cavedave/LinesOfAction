@@ -5,11 +5,9 @@ Code: Lines-of-Action-master/
 
 Current focus: improve playing strength (Elo), one eval term at a time.
 Baseline: strong  (= adaptive d3→d4 + mobility_weight 5)
-Challenger: strong_projN  (= strong + Loadstone projection pe−ope)
 
-Also in registry:
-  best / fast   — fixed d3 + mob5 (~20 s/game; for later RL batches)
-  minimax_d3    — classic d3 (weaker baseline)
+Projection (pe−ope): REJECTED — proj1 100–100, proj2 99–98 over 200 games each.
+Current challenger: strong_encN  (= strong + Loadstone enclosed term)
 
 
 --- SETUP ---
@@ -32,84 +30,67 @@ Also in registry:
 --- RULES ---
 
   • Use an EVEN --games count (2, 4, 50, 100 …). Odd counts >1 are rejected.
-  • --games 1 is allowed for a quick smoke (A always Black; unbalanced).
   • If grep shows nothing, run without grep first — you may have a typo or error.
-  • Summary lines go to stderr:
+  • Summary lines on stderr:
       harness timing: ...
       harness result: A <bot> W — B <bot> W — draws D — B decisive P%
 
 
 --- SMOKE (~2 minutes) ---
 
-  python -m harness --a strong --b strong_proj2 --games 4 --random-opening --opening-seed 42 --dim 8
+  python -m harness --a strong --b strong_enc1 --games 4 --random-opening --opening-seed 42 --dim 8
 
 Expect: no traceback; two harness lines printed.
 
 
---- BIG TEST — projection vs baseline (run on server) ---
+--- BIG TEST — enclosed vs baseline (server) ---
 
-Compare each projection weight against strong. 50 games per seed, four seeds
-= 200 games per pairing (~2–3 hours each at ~25–30 s/game).
+Champion = strong (A). Challenger = strong_encN (B).
+50 games × 4 seeds = 200 games per weight (~2–3 h each).
+If B decisive % > 55%, that weight is promising. Skip enc4 unless enc1 or enc2 wins seed 42.
 
-Champion = strong (registry bot A). Challenger = strong_projN (bot B).
-If B decisive % > 55%, projection at that weight is promising.
+PowerShell — enc weight 1:
 
-PowerShell — run one block at a time (or overnight: all three in sequence):
-
-  # proj weight 1
   foreach ($s in 42, 7, 99, 1234) {
-    python -m harness --a strong --b strong_proj1 `
+    python -m harness --a strong --b strong_enc1 `
       --games 50 --random-opening --opening-seed $s --dim 8 2>&1 |
-      Tee-Object -FilePath "proj1_seed$s.log" |
+      Tee-Object -FilePath "enc1_seed$s.log" |
       Select-String -Pattern "harness result:|harness timing:"
   }
 
-  # proj weight 2
+PowerShell — enc weight 2:
+
   foreach ($s in 42, 7, 99, 1234) {
-    python -m harness --a strong --b strong_proj2 `
+    python -m harness --a strong --b strong_enc2 `
       --games 50 --random-opening --opening-seed $s --dim 8 2>&1 |
-      Tee-Object -FilePath "proj2_seed$s.log" |
+      Tee-Object -FilePath "enc2_seed$s.log" |
       Select-String -Pattern "harness result:|harness timing:"
   }
 
-  # proj weight 4
-  foreach ($s in 42, 7, 99, 1234) {
-    python -m harness --a strong --b strong_proj4 `
-      --games 50 --random-opening --opening-seed $s --dim 8 2>&1 |
-      Tee-Object -FilePath "proj4_seed$s.log" |
-      Select-String -Pattern "harness result:|harness timing:"
-  }
-
-Mac / Linux bash (same tests, one weight):
+Mac / Linux bash (one weight):
 
   for s in 42 7 99 1234; do
-    SDL_VIDEODRIVER=dummy .venv/bin/python -m harness --a strong --b strong_proj2 \
+    SDL_VIDEODRIVER=dummy .venv/bin/python -m harness --a strong --b strong_enc1 \
       --games 50 --random-opening --opening-seed $s --dim 8 2>&1 |
-      tee "proj2_seed$s.log" | grep -E "harness result:|harness timing:"
+      tee "enc1_seed${s}.log" | grep -E "harness result:|harness timing:"
   done
 
 
 --- WHAT TO REPORT ---
 
-For each pairing (proj1 / proj2 / proj4), paste all lines matching:
-  harness result:
-  harness timing:
-
-Label with seed. Example aggregate: strong_proj2 won 157/200 decisive vs strong.
+Paste all harness result: and harness timing: lines, labelled enc1 or enc2 and seed.
 
 
 --- REGISTRY BOTS ---
 
-  strong          adaptive d3→d4, mob5, projection 0   (baseline)
-  strong_proj1    strong + projection_weight 1
-  strong_proj2    strong + projection_weight 2
-  strong_proj4    strong + projection_weight 4
-  best / fast     fixed d3 + mob5 (throughput; not current Elo focus)
-  minimax_d4_mob5 always d4 — too slow; skip unless checking ceiling
+  strong          adaptive d3→d4, mob5 (baseline)
+  strong_enc1/2/4 strong + enclosed_weight 1/2/4
+  strong_proj*    projection (rejected; ~50/50)
+  best / fast     fixed d3 + mob5 (RL throughput later)
 
 
---- LATER (not this batch) ---
+--- LATER ---
 
-  • enclosed term (after projection settled)
-  • mob4 / mob6 bracket on adaptive
-  • RL self-play batches using best/fast
+  • mob4 / mob6 bracket on strong
+  • OpenSpiel RL spike
+  • MIA-style features (quads, connectivity, walls)

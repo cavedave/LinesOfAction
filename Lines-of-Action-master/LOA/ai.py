@@ -162,6 +162,12 @@ class AI:
                 boardConfig, player_char, self.dim
             )
             blended += w_p * proj
+        w_e = self.weights.enclosed_weight
+        if w_e != 0:
+            enc = loadstone_eval.enclosed_for_stm(
+                boardConfig, player_char, self.dim
+            )
+            blended += w_e * enc
         return blended
 
     def _heuristic_white_minus_black(self, boardConfig):
