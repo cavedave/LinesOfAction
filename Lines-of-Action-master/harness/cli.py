@@ -67,6 +67,14 @@ def run_harness_batch(args, bot_a_id: str, bot_b_id: str, games: int) -> dict:
             f"full batch wall {timing['batch_wall_s']:.3f}s incl. bot setup)",
             file=sys.stderr,
         )
+    decisive = stats["a_wins"] + stats["b_wins"]
+    mob_pct = (100.0 * stats["b_wins"] / decisive) if decisive else 0.0
+    print(
+        f"harness result: A {bot_a_id} {stats['a_wins']} — B {bot_b_id} {stats['b_wins']} — "
+        f"draws {stats['draws']}"
+        + (f" — B decisive {mob_pct:.1f}%" if decisive else ""),
+        file=sys.stderr,
+    )
     print(json.dumps(stats, indent=2))
     return stats
 
@@ -118,10 +126,83 @@ def main_compare(argv: list[str] | None = None) -> None:
     )
 
 
+def main_sweep_mobility(argv: list[str] | None = None) -> None:
+    """Run classic vs each ``minimax_d3_mobN`` challenger; print a one-line summary table."""
+    prog = "python -m harness sweep-mobility"
+    p = argparse.ArgumentParser(
+        prog=prog,
+        description="Compare minimax_d3 (classic) vs mobility_weight variants on the same openings.",
+    )
+    add_shared_harness_args(p)
+    p.add_argument(
+        "--weights",
+        default="1,2,3,5,8",
+        help="Comma-separated mobility_weight values (registry: minimax_d3_mobN). Default: 1,2,3,5,8",
+    )
+    p.add_argument(
+        "--games",
+        type=int,
+        default=100,
+        help="Games per weight (use even count for colour balance; default 100)",
+    )
+    p.add_argument(
+        "--baseline",
+        default="minimax_d3",
+        metavar="BOT_ID",
+        help="Champion / classic bot id (default: minimax_d3)",
+    )
+    args = p.parse_args(argv)
+    if args.games < 1:
+        p.error("--games must be at least 1")
+    if args.games >= 2 and args.games % 2 != 0:
+        p.error("--games must be even when >1 for colour balance")
+
+    weights = []
+    for part in args.weights.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            weights.append(int(part))
+        except ValueError:
+            p.error(f"invalid weight {part!r} in --weights")
+
+    print(
+        f"harness sweep-mobility: baseline={args.baseline!r}, weights={weights}, "
+        f"games={args.games}, dim={args.dim}, opening_seed={args.opening_seed!r}",
+        file=sys.stderr,
+    )
+    print("weight\tbot_id\tclassic_wins\tmob_wins\tdraws\tdecisive_mob_pct", flush=True)
+
+    for w in weights:
+        challenger = f"minimax_d3_mob{w}"
+        stats = run_batch(
+            args.baseline,
+            challenger,
+            args.dim,
+            args.games,
+            max_plies=args.max_plies,
+            adjudicate_plies=args.adjudicate_plies,
+            time_games=not args.no_timing,
+            outcome_log_path=args.outcome_log,
+            print_outcomes=args.print_outcomes,
+            random_opening=args.random_opening,
+            opening_seed=args.opening_seed,
+        )
+        aw, bw, dr = stats["a_wins"], stats["b_wins"], stats["draws"]
+        decisive = aw + bw
+        pct = (100.0 * bw / decisive) if decisive else 0.0
+        print(f"{w}\t{challenger}\t{aw}\t{bw}\t{dr}\t{pct:.1f}", flush=True)
+
+
 def main() -> None:
     if len(sys.argv) > 1 and sys.argv[1] == "compare":
         new_argv = [sys.argv[0]] + sys.argv[2:]
         main_compare(new_argv[1:])
+        return
+    if len(sys.argv) > 1 and sys.argv[1] == "sweep-mobility":
+        new_argv = [sys.argv[0]] + sys.argv[2:]
+        main_sweep_mobility(new_argv[1:])
         return
 
     p = argparse.ArgumentParser(

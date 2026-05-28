@@ -33,7 +33,7 @@ Features:
     * 8 X 8 Board
 * Human vs Human mode
 * Human vs AI mode
-    * AI best move upto depth 3 (default) (change it as your wish)
+    * Human vs AI: selective depth 3→4 (d4 in sparse/critical positions) with mobility-weighted eval (default ``best`` bot in harness)
     * MiniMax Algorithm
     * Alpha-Beta pruning
 

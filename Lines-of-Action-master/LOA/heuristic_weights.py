@@ -26,8 +26,16 @@ class HeuristicWeights:
     piece_square_table: int = 2
     # terminal win/loss magnitude before +depth bonus in _eval_for_player
     terminal_magnitude: int = 10000
-    # Add mobility_weight × (stm_legal_moves − opp_legal_moves) for side to move; 0 = off
-    mobility_weight: int = 0
+    # Classic PST/COM leaf plus: mobility_weight × (stm_legal_moves − opp_legal_moves).
+    # Default 5 (May 2026): harness sweep at depth 3, 8×8, random opening — compared
+    # minimax_d3 (classic, weight 0) vs minimax_d3_mobN on opening_seed 42 for
+    # N ∈ {1,2,3,5,8}. Low weights (1–3) beat classic by ~52–54% decisive; 5 jumped
+    # to 76.5% decisive (75–23, 2 draws). Cross-seeds 7, 99, 1234: mob5 won 69–77%
+    # decisive (291/394 ≈ 74% over 400 games). Weight 8 was slightly worse than 5 on
+    # seed 42 (73.5% vs 76.5%). Full Loadstone eval at 100% blend was much weaker;
+    # this term is the isolated Loadstone-style mobility bonus (stm − opp), not
+    # Chaunier's full board_eval. Registry bots can override (e.g. minimax_d3_mob2).
+    mobility_weight: int = 5
     # 0 = PST/COM heuristic only; 100 = LoAdstone-normalized scalar only (_eval_for_player)
     loadstone_blend_pct: int = 0
 

@@ -10,7 +10,7 @@ class RandomBot:
         self.dim = dim
         self._rng = random.Random(seed)
 
-    def pick_move(self, board, turn_pid):
+    def pick_move(self, board, turn_pid, ply=None):
         char = "W" if turn_pid == WHITEID else "B"
         moves = []
         for r0 in range(self.dim):

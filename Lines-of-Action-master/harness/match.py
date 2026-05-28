@@ -45,7 +45,8 @@ def play_one_game(
     opening_rng: random.Random | None = None,
 ):
     """
-    Run one game (Black moves first). Bots implement ``pick_move(board, turn_pid) -> (r0,c0,r1,c1)|None``.
+    Run one game (Black moves first). Bots implement
+    ``pick_move(board, turn_pid, ply=None) -> (r0,c0,r1,c1)|None``.
 
     If ``opening_rng`` is set, the harness plays one uniformly random legal **Black** move
     from the standard start, then bots take over (White to move; one ply on the clock).
@@ -98,7 +99,7 @@ def play_one_game(
             continue
 
         bot = black_bot if turn == BLACKID else white_bot
-        mv = bot.pick_move(board, turn)
+        mv = bot.pick_move(board, turn, ply_count)
         if mv is None:
             print(
                 "harness: bot returned no move while a legal move existed — recording DRAW_MAX (illegal_bot_move).",

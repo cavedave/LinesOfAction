@@ -1,4 +1,25 @@
 {
+  "best": {"alias": "minimax_adaptive_mob5"},
+  "minimax_adaptive_mob5": {
+    "type": "minimax",
+    "depth": 3,
+    "depth_deep": 4,
+    "adaptive_depth": true
+  },
+  "best_mob4": {
+    "type": "minimax",
+    "depth": 3,
+    "depth_deep": 4,
+    "adaptive_depth": true,
+    "heuristic": {"mobility_weight": 4}
+  },
+  "best_mob6": {
+    "type": "minimax",
+    "depth": 3,
+    "depth_deep": 4,
+    "adaptive_depth": true,
+    "heuristic": {"mobility_weight": 6}
+  },
   "minimax_d1": {"type": "minimax", "depth": 1},
   "minimax_d2": {"type": "minimax", "depth": 2},
   "minimax_d3": {"type": "minimax", "depth": 3},
@@ -31,5 +52,14 @@
     "depth": 3,
     "heuristic": {"mobility_weight": 5}
   },
+  "minimax_d3_mob1": {"type": "minimax", "depth": 3, "heuristic": {"mobility_weight": 1}},
+  "minimax_d3_mob2": {"type": "minimax", "depth": 3, "heuristic": {"mobility_weight": 2}},
+  "minimax_d3_mob3": {"type": "minimax", "depth": 3, "heuristic": {"mobility_weight": 3}},
+  "minimax_d3_mob4": {"type": "minimax", "depth": 3, "heuristic": {"mobility_weight": 4}},
+  "minimax_d3_mob5": {"type": "minimax", "depth": 3, "heuristic": {"mobility_weight": 5}},
+  "minimax_d3_mob6": {"type": "minimax", "depth": 3, "heuristic": {"mobility_weight": 6}},
+  "minimax_d3_mob8": {"type": "minimax", "depth": 3, "heuristic": {"mobility_weight": 8}},
+  "minimax_d4_mob0": {"type": "minimax", "depth": 4, "heuristic": {"mobility_weight": 0}},
+  "minimax_d4_mob5": {"type": "minimax", "depth": 4, "heuristic": {"mobility_weight": 5}},
   "random": {"type": "random", "seed": 0}
 }

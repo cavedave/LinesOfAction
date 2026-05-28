@@ -25,6 +25,7 @@ class Game:
         self._rep_counts = {}
         self._repetition_draw = False
         self._stalemate_draw = False
+        self.ply_count = 0
 
     def _board_tuple(self):
         return tuple(tuple(row) for row in self.board.simpleBoard)
@@ -36,6 +37,9 @@ class Game:
         self._rep_counts[key] = self._rep_counts.get(key, 0) + 1
         if self._rep_counts[key] >= 3:
             self._repetition_draw = True
+
+    def _advance_ply(self):
+        self.ply_count += 1
 
     def _flip_turn(self):
         if self.turn == BLACKID:
@@ -65,6 +69,7 @@ class Game:
                 self._stalemate_draw = True
                 return
             self._flip_turn()
+            self._advance_ply()
             self.fromPos = self.toPos = None
             self._begin_arrival_at_mover()
 
@@ -196,6 +201,7 @@ class Game:
                 self._rep_counts = {}
                 self._repetition_draw = False
                 self._stalemate_draw = False
+                self.ply_count = 0
                 self._begin_arrival_at_mover()
                 self._resolve_pass_until_moves_or_done()
                 return
@@ -246,6 +252,7 @@ class Game:
         self.validMoves.clear()
         self.selectedPiece = None
         self._flip_turn()
+        self._advance_ply()
         self.fromPos = self.toPos = None
         self._finish_turn_transition()
         return True
@@ -254,6 +261,7 @@ class Game:
         self.validMoves.clear()
         self.selectedPiece = None
         self._flip_turn()
+        self._advance_ply()
         self._finish_turn_transition()
 
     def winner(self):

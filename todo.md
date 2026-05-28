@@ -46,10 +46,14 @@ Raw board + `stm` is the **non-negotiable** minimum; features and π are layered
 
 1. **Regression safety** — tests for `Board.apply_move` / legality / wins + harness smoke before big eval refactors.
 2. **MIA-style eval (modular)** — feature functions (quads subset, weighted mobility, average connectivity, walls later) + normalisation; combine via [`heuristic_weights`](file:///Users/davidcurran/Documents/LOA/Lines-of-Action-master/LOA/heuristic_weights.py)-style scalar weights for tournament/grid tuning.
-3. **Optional weight-tuning driver** — coordinate or random search over weights vs a fixed baseline (`harness` + `--random-opening`).
-4. **RL trace writer (JSONL)** — minimal v1 per §RL / offline (`board`, `stm`, `episode_id`, `move_index`, provenance); extend with π / `legal_moves` when the teacher exposes them.
-5. **Transposition table** — dict on `(board_tuple, stm)` first; Zobrist when nodes/sec matter.
-6. **Bitboards / package split / multiprocess / UCI** — after core eval + traces feel stable.
+3. **Mobility weight validation (follow-up)** — confirm default **`mobility_weight: 5`** at depth 4 and bracket the peak:
+   - [x] **d4 smoke** — mob5 ahead of mob0 at d4 on seed 42 (50 games, ~61% decisive); full 100×4 deferred (too slow).
+   - [ ] **mob4 / mob6 check** — `sweep-mobility --weights 4,5,6` (or manual A/B) on seed 42 at d3.
+   - [x] **Adaptive d3→d4** — `minimax_adaptive_mob5` (~78.5% vs d3 over 4×50 games); vs d4 ~72% decisive at ~94 s/game (seed 42). **Default:** pygame `AI` + registry **`best`**.
+4. **Optional weight-tuning driver** — coordinate or random search over weights vs a fixed baseline (`harness` + `--random-opening`).
+5. **RL trace writer (JSONL)** — minimal v1 per §RL / offline (`board`, `stm`, `episode_id`, `move_index`, provenance); extend with π / `legal_moves` when the teacher exposes them.
+6. **Transposition table** — dict on `(board_tuple, stm)` first; Zobrist when nodes/sec matter.
+7. **Bitboards / package split / multiprocess / UCI** — after core eval + traces feel stable.
 
 ---
 
@@ -79,6 +83,9 @@ Raw board + `stm` is the **non-negotiable** minimum; features and π are layered
 - **Harness**: colour balance with **even `--games` ≥2** (single-game smoke: `--games 1` = A Black only), **timing**, **`outcome_reasons`**, adjudicate fuse logging, **`--random-opening` / `--opening-seed`**.
 - **Search**: in-place negamax apply/undo (no per-child full grid copy).
 - **Heuristic tunables**: [`heuristic_weights.py`](file:///Users/davidcurran/Documents/LOA/Lines-of-Action-master/LOA/heuristic_weights.py) + registry `heuristic` overrides; example variant bots (e.g. bbox12, density12).
+- **Loadstone port** ([`loadstone_eval.py`](file:///Users/davidcurran/Documents/LOA/Lines-of-Action-master/LOA/loadstone_eval.py)): full Chaunier eval optional via `loadstone_blend_pct`; **mobility-only** term (`stm − opp` legal move counts) tuned via harness — **default `mobility_weight: 5`** (see comment in `HeuristicWeights`; sweep seeds 42/7/99/1234 at d3).
+- **`harness sweep-mobility`** + registry `minimax_d3_mob*` / `minimax_d4_mob*` ids for A/B tests.
+- **Selective depth** ([`search_depth.py`](file:///Users/davidcurran/Documents/LOA/Lines-of-Action-master/LOA/search_depth.py)): d3 default, d4 when sparse/critical; **default engine + harness bot `best`** (= `minimax_adaptive_mob5`).
 - Minimal **batch harness** + [`registry.json`](file:///Users/davidcurran/Documents/LOA/Lines-of-Action-master/harness/registry.json) bot ids (`minimax_d1`…`d5`, etc.).
 - In-repo **[MIA extended abstract PDF](file:///Users/davidcurran/Documents/LOA/Lines-of-Action-master/LOA/MIA%20A%20World%20Champion%20LOA%20Program.pdf)** for eval feature roadmap (quads, walls, mobility weighting, …).
 

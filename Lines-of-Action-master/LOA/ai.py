@@ -5,6 +5,7 @@ from math import inf, hypot
 from .constants import WHITEID, BLACKID, DRAWID, DIR, DIRECTIONS, DIRX, DIRY, Dims
 from .heuristic_weights import HeuristicWeights
 from . import loadstone_eval
+from .search_depth import AdaptiveDepthConfig, choose_search_depth
 
 
 def _opponent(player_char):
@@ -12,12 +13,39 @@ def _opponent(player_char):
 
 
 class AI:
-    def __init__(self, dim, weights: HeuristicWeights | None = None):
-        self.depth = 3
+    def __init__(
+        self,
+        dim,
+        weights: HeuristicWeights | None = None,
+        *,
+        depth: int = 3,
+        adaptive_depth: bool = True,
+        depth_deep: int = 4,
+    ):
+        self.depth = depth
+        self.depth_deep = depth_deep
+        self.adaptive_depth = adaptive_depth
+        self._adaptive_config = AdaptiveDepthConfig(
+            depth_shallow=depth,
+            depth_deep=depth_deep,
+        )
         self.ownid = "W"
         self.opid = "B"
         self.dim = dim
         self.weights = weights or HeuristicWeights()
+
+    def search_depth_for(
+        self,
+        board_config,
+        mover: str,
+        *,
+        ply: int | None = None,
+    ) -> int:
+        if not self.adaptive_depth:
+            return self.depth
+        return choose_search_depth(
+            self, board_config, mover, self._adaptive_config, ply=ply
+        )
 
     def AImove(self, game):
         if not game.board.side_has_legal_move(game.turn):
@@ -26,7 +54,9 @@ class AI:
         self.simpleBoard = [list(x) for x in game.board.simpleBoard]
         cfg = self.getConfig()
         mover = "W" if game.turn == WHITEID else "B"
-        _score, move = self._negamax(cfg, self.depth, -inf, inf, mover)
+        ply = getattr(game, "ply_count", None)
+        depth = self.search_depth_for(cfg, mover, ply=ply)
+        _score, move = self._negamax(cfg, depth, -inf, inf, mover)
         if move is None:
             game.apply_pass()
             return
