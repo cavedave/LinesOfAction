@@ -295,6 +295,30 @@ def mobility_stm_minus_opponent(ai: AI, board: List[List[str]], stm_char: str) -
     return _count_all_moves(ai, board, stm_char) - _count_all_moves(ai, board, opp)
 
 
+def projection_stm_minus_opponent(
+    board: List[List[str]], stm_char: str, dim: int
+) -> int:
+    """
+    Loadstone projection differential ``pe − ope`` for ``stm_char`` (before ×2 and ×512 scaling).
+
+    Uses the same ``player_eval`` order as :func:`board_eval_non_terminal` (opponent first,
+    enclosed sign flip, then stm). Returns 0 if either colour has no stones.
+    """
+    stm_index = 0 if stm_char == "B" else 1
+    nb_c = [
+        count_components_8conn(board, "B"),
+        count_components_8conn(board, "W"),
+    ]
+    if nb_c[0] == 0 or nb_c[1] == 0:
+        return 0
+    pt = build_projections(board, dim)
+    enclosed: List[int] = [0]
+    ope = player_eval(stm_index ^ 1, pt, dim, nb_c, enclosed)
+    enclosed[0] = -enclosed[0]
+    pe = player_eval(stm_index, pt, dim, nb_c, enclosed)
+    return pe - ope
+
+
 def board_eval_terminal_value(
     stm_index: int,
     nb_components: List[int],

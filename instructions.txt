@@ -3,17 +3,13 @@ Lines of Action — harness test instructions
 Repo: https://github.com/cavedave/LinesOfAction.git
 Code: Lines-of-Action-master/
 
-GOAL: RL / batch self-play needs MANY games, not peak Elo.
-Target: ~1 minute per game or less at 8×8.
+Current focus: improve playing strength (Elo), one eval term at a time.
+Baseline: strong  (= adaptive d3→d4 + mobility_weight 5)
+Challenger: strong_projN  (= strong + Loadstone projection pe−ope)
 
-Default bot: best  (= fast = fixed depth 3 + mobility_weight 5)
-  ~20 s/game in self-play (8×8, random opening). No selective d4.
-
-Strong/slow bot: strong  (= adaptive d3→d4 + mob5)
-  ~26 s/game vs fixed d3; use only when testing strength, not for RL traces.
-
-You can STOP any running d4 ceiling tests (best vs minimax_d4_mob5) — they are
-not needed for the RL throughput path.
+Also in registry:
+  best / fast   — fixed d3 + mob5 (~20 s/game; for later RL batches)
+  minimax_d3    — classic d3 (weaker baseline)
 
 
 --- SETUP ---
@@ -21,7 +17,7 @@ not needed for the RL throughput path.
   git pull origin main
   cd Lines-of-Action-master
 
-  PowerShell:
+  PowerShell (Windows server):
     py -3 -m venv .venv
     .venv\Scripts\Activate.ps1
     pip install -r requirements.txt
@@ -33,84 +29,87 @@ not needed for the RL throughput path.
     export SDL_VIDEODRIVER=dummy
 
 
---- SMOKE (~30 seconds) ---
+--- RULES ---
 
-  python -m harness --a best --b random --games 4 --dim 8
-
-Expect: best wins all or nearly all; mean time well under 60 s/game.
-
-
---- RL THROUGHPUT TESTS (run on either machine) ---
-
-T1) Self-play speed check (10 games — confirms ~1 min/game budget)
-
-  python -m harness --a best --b best --games 10 --random-opening --opening-seed 42 --dim 8
-
-  Expect: harness timing mean ~15–25 s/game at 8×8.
+  • Use an EVEN --games count (2, 4, 50, 100 …). Odd counts >1 are rejected.
+  • --games 1 is allowed for a quick smoke (A always Black; unbalanced).
+  • If grep shows nothing, run without grep first — you may have a typo or error.
+  • Summary lines go to stderr:
+      harness timing: ...
+      harness result: A <bot> W — B <bot> W — draws D — B decisive P%
 
 
-T2) Self-play quality smoke (50 games — bot is not broken)
+--- SMOKE (~2 minutes) ---
 
-  python -m harness --a best --b best --games 50 --random-opening --opening-seed 42 --dim 8
+  python -m harness --a strong --b strong_proj2 --games 4 --random-opening --opening-seed 42 --dim 8
 
-  Expect: win split roughly 50/50 (same bot both sides); few or no illegal-move draws.
-
-
-T3) vs weaker baseline (50 games — mob5 beats plain d3)
-
-  python -m harness --a minimax_d3 --b best --games 50 --random-opening --opening-seed 42 --dim 8
-
-  Expect: best (B) wins ~70%+ decisive; still ~10–15 s/game.
+Expect: no traceback; two harness lines printed.
 
 
-T4) Optional 6×6 (faster games for huge batches)
+--- BIG TEST — projection vs baseline (run on server) ---
 
-  python -m harness --a best --b best --games 20 --random-opening --opening-seed 42 --dim 6
+Compare each projection weight against strong. 50 games per seed, four seeds
+= 200 games per pairing (~2–3 hours each at ~25–30 s/game).
 
-  Expect: mean s/game lower than 8×8.
+Champion = strong (registry bot A). Challenger = strong_projN (bot B).
+If B decisive % > 55%, projection at that weight is promising.
 
+PowerShell — run one block at a time (or overnight: all three in sequence):
 
---- PARALLEL SPLIT (if two machines) ---
+  # proj weight 1
+  foreach ($s in 42, 7, 99, 1234) {
+    python -m harness --a strong --b strong_proj1 `
+      --games 50 --random-opening --opening-seed $s --dim 8 2>&1 |
+      Tee-Object -FilePath "proj1_seed$s.log" |
+      Select-String -Pattern "harness result:|harness timing:"
+  }
 
-Machine 1 — T2 at seeds 42 and 7 (100 games total):
-  PowerShell:
-    foreach ($s in 42, 7) {
-      python -m harness --a best --b best --games 50 --random-opening --opening-seed $s --dim 8 2>&1 |
-        Select-String -Pattern "harness result:|harness timing:"
-    }
+  # proj weight 2
+  foreach ($s in 42, 7, 99, 1234) {
+    python -m harness --a strong --b strong_proj2 `
+      --games 50 --random-opening --opening-seed $s --dim 8 2>&1 |
+      Tee-Object -FilePath "proj2_seed$s.log" |
+      Select-String -Pattern "harness result:|harness timing:"
+  }
 
-Machine 2 — T2 at seeds 99 and 1234 + T3 seed 42:
-  Mac bash:
-    for s in 99 1234; do
-      SDL_VIDEODRIVER=dummy .venv/bin/python -m harness --a best --b best \
-        --games 50 --random-opening --opening-seed $s --dim 8 2>&1 |
-        grep -E "harness result:|harness timing:"
-    done
-    SDL_VIDEODRIVER=dummy .venv/bin/python -m harness --a minimax_d3 --b best \
-      --games 50 --random-opening --opening-seed 42 --dim 8 2>&1 |
-      grep -E "harness result:|harness timing:"
+  # proj weight 4
+  foreach ($s in 42, 7, 99, 1234) {
+    python -m harness --a strong --b strong_proj4 `
+      --games 50 --random-opening --opening-seed $s --dim 8 2>&1 |
+      Tee-Object -FilePath "proj4_seed$s.log" |
+      Select-String -Pattern "harness result:|harness timing:"
+  }
 
+Mac / Linux bash (same tests, one weight):
 
---- STRENGTH TESTS (optional, slow — NOT for RL batches) ---
-
-Only if you want to compare strong vs fast:
-
-  python -m harness --a best --b strong --games 50 --random-opening --opening-seed 42 --dim 8
-
-  Expect: strong (B) wins majority; ~25 s/game (not ~90 s — neither side is always d4).
-
-
---- READING OUTPUT ---
-
-  harness timing: ... (mean X.XXXs/game, ...)
-  harness result: A <bot_a> W1 — B <bot_b> W2 — draws D — B decisive P%
-
-Report: test id (T1–T4), seed, mean s/game, result line.
+  for s in 42 7 99 1234; do
+    SDL_VIDEODRIVER=dummy .venv/bin/python -m harness --a strong --b strong_proj2 \
+      --games 50 --random-opening --opening-seed $s --dim 8 2>&1 |
+      tee "proj2_seed$s.log" | grep -E "harness result:|harness timing:"
+  done
 
 
---- REGISTRY QUICK REFERENCE ---
+--- WHAT TO REPORT ---
 
-  best / fast     — d3 + mob5 (RL default)
-  strong          — adaptive d3→d4 + mob5
-  minimax_d3      — d3 classic (weaker, slightly faster eval)
-  minimax_d4_mob5 — always d4 (too slow for RL; ~90–220 s/game in mixed pairs)
+For each pairing (proj1 / proj2 / proj4), paste all lines matching:
+  harness result:
+  harness timing:
+
+Label with seed. Example aggregate: strong_proj2 won 157/200 decisive vs strong.
+
+
+--- REGISTRY BOTS ---
+
+  strong          adaptive d3→d4, mob5, projection 0   (baseline)
+  strong_proj1    strong + projection_weight 1
+  strong_proj2    strong + projection_weight 2
+  strong_proj4    strong + projection_weight 4
+  best / fast     fixed d3 + mob5 (throughput; not current Elo focus)
+  minimax_d4_mob5 always d4 — too slow; skip unless checking ceiling
+
+
+--- LATER (not this batch) ---
+
+  • enclosed term (after projection settled)
+  • mob4 / mob6 bracket on adaptive
+  • RL self-play batches using best/fast

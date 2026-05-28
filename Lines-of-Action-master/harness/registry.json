@@ -12,6 +12,27 @@
     "depth_deep": 4,
     "adaptive_depth": true
   },
+  "strong_proj1": {
+    "type": "minimax",
+    "depth": 3,
+    "depth_deep": 4,
+    "adaptive_depth": true,
+    "heuristic": {"mobility_weight": 5, "projection_weight": 1}
+  },
+  "strong_proj2": {
+    "type": "minimax",
+    "depth": 3,
+    "depth_deep": 4,
+    "adaptive_depth": true,
+    "heuristic": {"mobility_weight": 5, "projection_weight": 2}
+  },
+  "strong_proj4": {
+    "type": "minimax",
+    "depth": 3,
+    "depth_deep": 4,
+    "adaptive_depth": true,
+    "heuristic": {"mobility_weight": 5, "projection_weight": 4}
+  },
   "best_mob4": {
     "type": "minimax",
     "depth": 3,

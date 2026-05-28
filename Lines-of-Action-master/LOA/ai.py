@@ -156,6 +156,12 @@ class AI:
                 self, boardConfig, player_char
             )
             blended += w_m * mob
+        w_p = self.weights.projection_weight
+        if w_p != 0:
+            proj = loadstone_eval.projection_stm_minus_opponent(
+                boardConfig, player_char, self.dim
+            )
+            blended += w_p * proj
         return blended
 
     def _heuristic_white_minus_black(self, boardConfig):

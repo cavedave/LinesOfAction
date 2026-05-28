@@ -36,6 +36,9 @@ class HeuristicWeights:
     # this term is the isolated Loadstone-style mobility bonus (stm − opp), not
     # Chaunier's full board_eval. Registry bots can override (e.g. minimax_d3_mob2).
     mobility_weight: int = 5
+    # Classic + mobility plus: projection_weight × Loadstone (pe − ope) for side to move.
+    # Isolated from enclosed and from full board_eval blend; tune via registry (e.g. strong_proj2).
+    projection_weight: int = 0
     # 0 = PST/COM heuristic only; 100 = LoAdstone-normalized scalar only (_eval_for_player)
     loadstone_blend_pct: int = 0
 
