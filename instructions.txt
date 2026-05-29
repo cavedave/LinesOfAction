@@ -92,5 +92,28 @@ Paste all harness result: and harness timing: lines, labelled enc1 or enc2 and s
 --- LATER ---
 
   • mob4 / mob6 bracket on strong
-  • OpenSpiel RL spike
   • MIA-style features (quads, connectivity, walls)
+
+
+--- OPENSPIEL TEACHER (bridge + traces) ---
+
+Best eval wired as ``strong_enc1`` (mob5 + adaptive + enclosed_weight 1).
+OpenSpiel uses Winands rules (``lines_of_action``); core move legality matches our grid.
+
+Setup (open-spiel already in requirements if venv rebuilt):
+
+  pip install -r requirements.txt
+  cd Lines-of-Action-master
+  $env:SDL_VIDEODRIVER = "dummy   # PowerShell
+
+Sanity + speed (~5 min default):
+
+  python -m openspiel_loa.benchmark
+
+  python -m openspiel_loa.benchmark --games 10 --mode both
+  python -m openspiel_loa.benchmark --games 5 --trace traces.jsonl
+
+JSONL each line: observation_tensor, legal_actions, action, board (B/W/_),
+stm, grid_move, rule_set=winands_openspiel.
+
+Module: openspiel_loa/ (bridge.py, teacher.py, benchmark.py)
