@@ -20,8 +20,31 @@ import pyspiel
 from LOA.constants import Dims
 from LOA.board import Board
 
+from LOA.heuristic_weights import HeuristicWeights
+
 from .bridge import action_to_grid_move, observation_to_grid, record_step
 from .teacher import LoaTeacherBot, default_teacher_weights
+
+
+def make_strong_enc1(player_id: int) -> LoaTeacherBot:
+    """Adaptive d3→d4 + mob5 + enclosed 1 (current best)."""
+    return LoaTeacherBot(
+        player_id,
+        weights=default_teacher_weights(),
+        adaptive_depth=True,
+        bot_id="strong_enc1",
+    )
+
+
+def make_d3_mob5(player_id: int) -> LoaTeacherBot:
+    """Fixed depth 3 + mob5 only (harness ``fast`` / ``minimax_d3_mob5``)."""
+    return LoaTeacherBot(
+        player_id,
+        weights=HeuristicWeights(mobility_weight=5),
+        adaptive_depth=False,
+        depth=3,
+        bot_id="d3_mob5",
+    )
 
 
 def _check_legal_moves_match(state: pyspiel.State) -> bool:
@@ -171,6 +194,66 @@ def play_teacher_self_play(games: int) -> dict:
     }
 
 
+def play_bot_vs_bot(
+    games: int,
+    *,
+    bot_a_id: str,
+    bot_b_id: str,
+    make_a,
+    make_b,
+) -> dict:
+    """
+    Play ``games`` with colour alternation. Even indices: A = Black (player 0).
+    """
+    if games >= 2 and games % 2 != 0:
+        raise ValueError("games must be even for balanced colours")
+
+    game = pyspiel.load_game("lines_of_action")
+    a_wins = b_wins = draws = 0
+    per_game_s: list[float] = []
+
+    for g in range(games):
+        if g % 2 == 0:
+            bot0, bot1 = make_a(0), make_b(1)
+            a_is_black = True
+        else:
+            bot0, bot1 = make_b(0), make_a(1)
+            a_is_black = False
+
+        state = game.new_initial_state()
+        t0 = time.perf_counter()
+        while not state.is_terminal():
+            bot = bot0 if state.current_player() == 0 else bot1
+            state.apply_action(bot.step(state))
+        per_game_s.append(time.perf_counter() - t0)
+
+        rets = state.returns()
+        if rets[0] == 0 and rets[1] == 0:
+            draws += 1
+        elif (rets[0] > 0) == a_is_black:
+            a_wins += 1
+        else:
+            b_wins += 1
+
+    decisive = a_wins + b_wins
+    total = sum(per_game_s)
+    return {
+        "games": games,
+        "bot_a": bot_a_id,
+        "bot_b": bot_b_id,
+        "a_wins": a_wins,
+        "b_wins": b_wins,
+        "draws": draws,
+        "b_decisive_pct": round(100.0 * b_wins / decisive, 1) if decisive else 0.0,
+        "timing": {
+            "total_s": round(total, 3),
+            "mean_s": round(total / games, 3) if games else 0,
+            "min_s": round(min(per_game_s), 3) if per_game_s else 0,
+            "max_s": round(max(per_game_s), 3) if per_game_s else 0,
+        },
+    }
+
+
 def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(description="OpenSpiel LOA teacher sanity + benchmark")
     p.add_argument("--games", type=int, default=5, help="Games for timing (default 5)")
@@ -179,15 +262,37 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--skip-sanity", action="store_true")
     p.add_argument(
         "--mode",
-        choices=("vs_random", "self_play", "both"),
+        choices=("vs_random", "self_play", "both", "compare"),
         default="both",
     )
     args = p.parse_args(argv)
 
-    if not args.skip_sanity:
+    if not args.skip_sanity and args.mode != "compare":
         sanity_checks()
 
     results = {}
+    if args.mode == "compare":
+        print(
+            f"=== OpenSpiel compare: strong_enc1 (A) vs d3_mob5 (B) — "
+            f"{args.games} games, colours alternate ==="
+        )
+        results["compare"] = play_bot_vs_bot(
+            args.games,
+            bot_a_id="strong_enc1",
+            bot_b_id="d3_mob5",
+            make_a=make_strong_enc1,
+            make_b=make_d3_mob5,
+        )
+        r = results["compare"]
+        print(
+            f"result: A {r['bot_a']} {r['a_wins']} — B {r['bot_b']} {r['b_wins']} — "
+            f"draws {r['draws']} — B decisive {r['b_decisive_pct']}%"
+        )
+        t = r["timing"]
+        print(f"timing: mean {t['mean_s']}s/game (min {t['min_s']}, max {t['max_s']})")
+        print("\n" + json.dumps(results, indent=2))
+        return
+
     if args.mode in ("vs_random", "both"):
         print(f"=== teacher vs random ({args.games} games) ===")
         results["vs_random"] = play_teacher_vs_random(

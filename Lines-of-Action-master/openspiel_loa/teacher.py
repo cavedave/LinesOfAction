@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pyspiel
 
-from LOA.constants import BLACKID, WHITEID
+from LOA.constants import BLACKID, WHITEID, Dims
 from LOA.heuristic_weights import HeuristicWeights
 from LOA.search_depth import AdaptiveDepthConfig
 from harness.bots.minimax import MinimaxBot
@@ -38,6 +38,7 @@ class LoaTeacherBot(pyspiel.Bot):
         bot_id: str = "strong_enc1",
     ):
         pyspiel.Bot.__init__(self)
+        Dims.generateDims(8)
         self._player_id = player_id
         self._bot_id = bot_id
         self._inner = MinimaxBot(
